@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拆一顿饭钱</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #eef0ea; color: #23261f; line-height: 1.6; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 14px 40px; }
+  h1 { font-size: 25px; letter-spacing: 1px; }
+  .lead { color: #5d6356; font-size: 14px; margin: 4px 0 14px; }
+  .card { background: #fff; border-radius: 8px; padding: 14px; border: 1px solid #d6dacd; margin-bottom: 14px; min-width: 0; }
+  .card h2 { font-size: 15px; color: #5d6356; font-weight: 600; margin-bottom: 8px; }
+  input { font: inherit; font-size: 14px; padding: 4px 6px; border: 1px solid #b4baa8; border-radius: 5px; width: 100%; min-width: 0; background: #fcfdf9; font-variant-numeric: tabular-nums; }
+  input[type=checkbox] { width: auto; }
+  .bad { border-color: #b23a2b !important; background: #fff0ec !important; }
+  label { font-size: 12px; color: #687060; display: block; }
+  button { font: inherit; font-size: 13px; padding: 6px 11px; border-radius: 5px; border: 1px solid #3f6b4f; background: #3f6b4f; color: #fff; cursor: pointer; }
+  button.ghost { background: #fff; color: #3f6b4f; }
+  button.x { padding: 2px 8px; background: #fff; color: #8a2a1b; border-color: #d7b0a6; }
+  .row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .row + .row { margin-top: 10px; }
+  @media (max-width: 680px) { .row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .presets, .dl { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .err { display: none; background: #fff0ec; border: 1px solid #e0b2a7; color: #8a2a1b; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; overflow-wrap: anywhere; }
+  /* 购物清单 */
+  .items { display: grid; gap: 6px; }
+  .it { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .6fr) minmax(0, 1fr) auto; gap: 6px; align-items: end; padding-bottom: 6px; border-bottom: 1px dashed #e2e5db; }
+  .it .ck { font-size: 12px; color: #687060; display: flex; gap: 4px; align-items: center; padding-bottom: 6px; }
+  @media (max-width: 680px) { .it { grid-template-columns: repeat(3, minmax(0, 1fr)); } .it .ck { grid-column: span 2; } }
+  /* 小票 */
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 760px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  .ticket { background: #fffdf6; border: 1px solid #e3dcc6; border-radius: 4px; padding: 16px 16px 12px; font-family: ui-monospace, Menlo, "PingFang SC", monospace; font-size: 13px; position: relative; }
+  .ticket::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 7px; background: radial-gradient(circle at 6px 0, transparent 5px, #fffdf6 5.5px) 0 0 / 12px 7px repeat-x; }
+  .ticket h3 { text-align: center; font-size: 14px; letter-spacing: 2px; margin-bottom: 6px; }
+  .ticket .ln { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+  .ticket .ln span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .ticket .ln span:last-child { flex: none; font-variant-numeric: tabular-nums; }
+  .ticket .ln.waste { color: #a2421f; }
+  .ticket .ln.tot { border-top: 1px dashed #b8ae92; margin-top: 6px; padding-top: 6px; font-weight: 700; font-size: 15px; }
+  .ticket .ln.vs { color: #5d6356; }
+  .ticket .foot { text-align: center; color: #8b8670; font-size: 11px; margin-top: 8px; }
+  #summary { font-size: 21px; font-weight: 700; overflow-wrap: anywhere; }
+  #summary.save { color: #2f6a45; } #summary.lose { color: #a2421f; } #summary.tie { color: #5d6356; }
+  .nums { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 10px 0 4px; }
+  .nums div { min-width: 0; } .nums small { display: block; font-size: 12px; color: #737a6a; }
+  .nums b { font-size: 23px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  #facts { margin: 8px 0 0 18px; font-size: 14px; } #facts li { margin: 3px 0; overflow-wrap: anywhere; }
+  #curve { width: 100%; height: auto; display: block; }
+  .key { font-size: 12px; color: #687060; display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+  .key i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  table.t th, table.t td { padding: 4px 6px; border-bottom: 1px solid #e6e9df; text-align: right; white-space: nowrap; }
+  table.t th:first-child, table.t td:first-child { text-align: left; white-space: normal; overflow-wrap: anywhere; min-width: 6em; }
+  table.t { min-width: 520px; }
+  table.t th { color: #687060; font-weight: 600; font-size: 12px; }
+  table.t td.w { color: #a2421f; }
+  .tw { overflow-x: auto; }
+  #sugs { display: grid; gap: 8px; }
+  .sug { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid #e2e5db; border-radius: 6px; padding: 8px 10px; }
+  .sug span { min-width: 0; overflow-wrap: anywhere; font-size: 14px; } .sug button { flex: none; }
+  @media (max-width: 480px) { .sug { flex-direction: column; align-items: stretch; } }
+  .how { font-size: 13px; color: #454a3f; } .how p { margin: 6px 0; } .how b { color: #23261f; }
+  .muted { color: #737a6a; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>拆一顿饭钱</h1>
+  <p class="lead">自己做饭到底比点外卖省多少？把一周的购物清单填进来，菜只能整包买、吃不完会扔，这部分也算进每一顿。默认数据是虚构的。</p>
+
+  <div class="card">
+    <h2>这一周</h2>
+    <div class="row">
+      <div><label for="meals">每周在家做几顿</label><input id="meals" inputmode="numeric"></div>
+      <div><label for="people">每顿几个人吃</label><input id="people" inputmode="numeric"></div>
+      <div><label for="takeout">外卖每份实付（元，含配送费减红包）</label><input id="takeout" inputmode="decimal"></div>
+      <div><label for="minutes">每顿花多少分钟（买、做、洗）</label><input id="minutes" inputmode="decimal"></div>
+    </div>
+    <div class="row">
+      <div><label for="pantry">调料油盐每顿（元）</label><input id="pantry" inputmode="decimal"></div>
+      <div><label for="energy">燃气水电每顿（元）</label><input id="energy" inputmode="decimal"></div>
+      <div><label for="hourly">时间每小时算多少钱（0 = 不算）</label><input id="hourly" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>一周的购物清单（整包买）</h2>
+    <div class="items" id="items"></div>
+    <div class="presets"><button class="ghost" id="addItem">加一样</button></div>
+    <p class="muted" style="margin-top:6px">「放得住」打勾的（米、油、鸡蛋、冻起来的肉）只算用掉那部分的钱；不打勾的这周用不完就当扔了。每顿用量是所有人一起的量。</p>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="err" id="error"></div>
+
+  <div id="out">
+    <div class="two">
+      <div class="card">
+        <div id="summary"></div>
+        <div class="nums" id="nums"></div>
+        <ul id="facts"></ul>
+      </div>
+      <div class="card">
+        <div class="ticket" id="ticket"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>每样食材：买几包、扔掉多少</h2>
+      <div class="tw"><table class="t" id="tbl"></table></div>
+    </div>
+    <div class="card">
+      <h2 id="curveTitle">同一份清单，每周做几顿，一顿多少钱</h2>
+      <svg id="curve" viewBox="0 0 900 260" role="img" aria-label="每周做几顿与一顿多少钱"></svg>
+      <div class="key" id="curveKey"></div>
+    </div>
+    <div class="card" id="sugCard">
+      <h2>换个做法看看（点一下代回去重算）</h2>
+      <div id="sugs"></div>
+    </div>
+    <div class="card">
+      <h2>带走结果</h2>
+      <div class="dl">
+        <button id="dlCSV">CSV 表格</button><button id="dlMD">Markdown</button><button id="dlPNG">结果卡 PNG</button><button id="dlJSON" class="ghost">JSON 备份</button>
+        <button id="reset" class="ghost">恢复默认</button>
+      </div>
+      <p class="muted" style="margin-top:6px">输入自动保存在这台设备的浏览器里，刷新还在。</p>
+    </div>
+  </div>
+
+  <div class="card how">
+    <h2>怎么算的</h2>
+    <p><b>整包取整。</b>一周买一趟。每样要买几包 = 向上取整(每周做几顿 × 每顿用量 ÷ 一包多少)。</p>
+    <p><b>放不住的按整包算钱。</b>这周没吃完的部分当扔了：花掉 = 包数 × 一包价，吃进去 = 用量 ÷ 一包多少 × 一包价，两者之差是扔掉的钱。放得住的只算吃进去的。</p>
+    <p><b>一顿多少钱。</b>(食材花掉的 + (调料油盐 + 燃气水电) × 顿数 + 时间钱) ÷ 顿数。时间钱 = 每小时多少钱 × 分钟 ÷ 60，填 0 就不算。外卖一顿 = 每份实付 × 几个人吃。</p>
+    <p><b>每周做几顿那张图。</b>清单和用量都不变，只改顿数，从 1 算到 21。整包摊得越满越便宜，所以曲线是锯齿形的，不是越做越便宜。</p>
+    <p><b>一个月。</b>每顿省的 × 每周顿数 × 52 ÷ 12。</p>
+    <p class="muted">不做：菜价涨跌、打折凑单、剩菜第二天接着吃、外卖分量和在家分量不一样、营养和口味。价格、用量、分钟数都是你自己填的估计。</p>
+  </div>
+</div>
+
+  <script>
+/* 拆一顿饭钱 · 计算核心（浏览器里挂 window.AppCore，Node 里 module.exports）
+ * 一周买一趟菜、在家做 K 顿。每样食材只能整包买：
+ *   买几包 n = ceil(K × 每顿用量 ÷ 一包多少)；
+ *   放不住的（这周吃不完就扔）：花掉 n × 一包价；放得住的（米、油、冻起来的肉）：只算用掉的那部分 K × 用量 ÷ 一包 × 一包价。
+ *   扔掉的钱 = 花掉的 − 吃进去的。
+ * 每顿钱 = (食材花掉的 + (调料油盐 + 燃气水电) × K) ÷ K；时间按每小时多少钱另算（默认 0，不算钱）。
+ * 外卖每顿 = 每份实付 × 几个人吃。 */
+(function (root) {
+  'use strict';
+  const MAXK = 21, MAXITEMS = 12;
+  const EPS = 1e-9;
+
+  function round(x, d) { const m = Math.pow(10, d); return Math.round((x + (x >= 0 ? 1 : -1) * 1e-12) * m) / m; }
+  function fmt(x, d) {
+    const r = round(x, d);
+    let s = Math.abs(r).toFixed(d);
+    if (d > 0) s = s.replace(/\.?0+$/, '');
+    const parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (r < 0 ? '-' : '') + parts.join('.');
+  }
+  /* 金额固定两位小数，带 ¥；负数写成 -¥ */
+  function money(x) {
+    const r = round(x, 2);
+    const s = Math.abs(r).toFixed(2).split('.');
+    s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (r < 0 ? '-' : '') + '¥' + s.join('.');
+  }
+  function pct(x) { return fmt(x * 100, 0) + '%'; }
+
+  function err(message, field) { const e = new Error(message); e.field = field; return e; }
+  function num(v, field, label, lo, hi, opt) {
+    opt = opt || {};
+    const s = String(v == null ? '' : v).trim().replace(/[,，]/g, '').replace(/^¥/, '');
+    if (s === '') throw err(label + '没填', field);
+    if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)) throw err(label + '要填数字（现在是「' + String(v).slice(0, 12) + '」）', field);
+    const x = Number(s);
+    if (opt.int && Math.floor(x) !== x) throw err(label + '要填整数', field);
+    if (opt.pos && !(x > 0)) throw err(label + '要大于 0', field);
+    if (x < lo || x > hi) throw err(label + '要在 ' + fmt(lo, 2) + ' 到 ' + fmt(hi, 2) + ' 之间', field);
+    return x;
+  }
+
+  function parse(st) {
+    if (!st || typeof st !== 'object') throw err('没有输入', null);
+    const P = {};
+    P.people = num(st.people, 'people', '每顿几个人吃', 1, 10, { int: true });
+    P.meals = num(st.meals, 'meals', '每周在家做几顿', 1, MAXK, { int: true });
+    P.takeout = num(st.takeout, 'takeout', '外卖每份实付', 0, 1000, { pos: true });
+    P.pantry = num(st.pantry, 'pantry', '调料油盐每顿', 0, 200);
+    P.energy = num(st.energy, 'energy', '燃气水电每顿', 0, 200);
+    P.minutes = num(st.minutes, 'minutes', '每顿花多少分钟', 0, 600);
+    P.hourly = num(st.hourly, 'hourly', '时间每小时算多少钱', 0, 10000);
+    const items = Array.isArray(st.items) ? st.items : [];
+    if (!items.length) throw err('购物清单是空的，至少写一样食材', 'addItem');
+    if (items.length > MAXITEMS) throw err('食材最多 ' + MAXITEMS + ' 样', 'addItem');
+    P.items = items.map(function (it, i) {
+      const f = 'it-' + i + '-';
+      const name = String(it.name == null ? '' : it.name).trim().slice(0, 20) || ('第 ' + (i + 1) + ' 样');
+      const lab = '「' + name + '」';
+      const price = num(it.price, f + 'price', lab + '一包多少钱', 0, 100000, { pos: true });
+      const size = num(it.size, f + 'size', lab + '一包有多少', 0, 1e6, { pos: true });
+      const use = num(it.use, f + 'use', lab + '每顿用多少', 0, 1e6);
+      const unit = String(it.unit == null ? '' : it.unit).trim().slice(0, 6);
+      return { name: name, price: price, size: size, use: use, unit: unit, keeps: it.keeps === true || it.keeps === 'true' };
+    });
+    if (!P.items.some(function (x) { return x.use > 0; })) throw err('每样食材的「每顿用多少」都是 0，算不出一顿饭', 'it-0-use');
+    return P;
+  }
+
+  /* 某个 K 下的一行食材账 */
+  function itemAt(it, K) {
+    const need = K * it.use;
+    const packs = it.use > 0 ? Math.ceil(need / it.size - EPS) : 0;
+    const eaten = need / it.size * it.price;
+    const spent = it.keeps ? eaten : packs * it.price;
+    const leftover = it.keeps ? 0 : Math.max(0, packs * it.size - need);
+    return { name: it.name, unit: it.unit, keeps: it.keeps, packs: packs, need: need, spent: spent, eaten: eaten, wasted: Math.max(0, spent - eaten), leftover: leftover };
+  }
+  /* 某个 K 下的整周账（K 顿） */
+  function weekAt(P, K) {
+    const rows = P.items.map(function (it) { return itemAt(it, K); });
+    const food = rows.reduce(function (a, x) { return a + x.spent; }, 0);
+    const eaten = rows.reduce(function (a, x) { return a + x.eaten; }, 0);
+    const wasted = rows.reduce(function (a, x) { return a + x.wasted; }, 0);
+    const extras = (P.pantry + P.energy) * K;
+    const timeCost = P.hourly * P.minutes / 60 * K;
+    const cash = food + extras;
+    return { K: K, rows: rows, food: food, eaten: eaten, wasted: wasted, extras: extras, cash: cash, timeCost: timeCost,
+      perMeal: cash / K, perMealAll: (cash + timeCost) / K };
+  }
+
+  function calculate(st) {
+    const P = parse(st);
+    const w = weekAt(P, P.meals);
+    const K = P.meals, s = P.people;
+    const out = P.takeout * s;                          /* 外卖一顿 */
+    const home = w.perMealAll;                          /* 在家一顿（含时间钱，如有） */
+    const save = out - home;                            /* 每顿省（负 = 更贵） */
+    const perWeek = save * K, perMonth = save * K * 52 / 12;
+    /* 一顿的小票：每一行都按「÷ K」摊到一顿 */
+    const receipt = [
+      ['食材：吃进去的', w.eaten / K],
+      ['食材：整包买、吃不完扔掉的', w.wasted / K],
+      ['调料油盐', P.pantry],
+      ['燃气水电', P.energy]
+    ];
+    if (P.hourly > 0 && P.minutes > 0) receipt.push(['时间 ' + fmt(P.minutes, 0) + ' 分钟 × ¥' + fmt(P.hourly, 2) + '/小时', P.hourly * P.minutes / 60]);
+    /* 换成每周 1..21 顿的曲线 */
+    const curve = [];
+    for (let k = 1; k <= MAXK; k++) { const x = weekAt(P, k); curve.push({ K: k, perMeal: x.perMealAll, wasted: x.wasted / k, beats: x.perMealAll <= out + EPS }); }
+    let best = curve[0];
+    curve.forEach(function (c) { if (c.perMeal < best.perMeal - EPS) best = c; });
+    const firstBeat = curve.find(function (c) { return c.beats; }) || null;
+    /* 时间值多少钱就打平：只看现金账 */
+    const cashGap = out - w.perMeal;
+    const hStar = (P.minutes > 0 && cashGap > EPS) ? cashGap * 60 / P.minutes : null;
+    /* 外卖多少钱一份就打平 */
+    const tStar = home / s;
+    /* 扔得最多的一样 */
+    let worst = null;
+    w.rows.forEach(function (x, i) { if (x.wasted > EPS && (!worst || x.wasted > worst.wasted + EPS)) worst = Object.assign({ i: i }, x); });
+    const wasteShare = w.food > 0 ? w.wasted / w.food : 0;
+
+    let key;
+    if (Math.abs(save) < 0.005 + EPS) key = 'tie';
+    else key = save > 0 ? 'save' : 'lose';
+    const pre = s > 1 ? s + ' 个人' : '';
+    let summary;
+    if (key === 'save') summary = pre + '在家做一顿省 ' + money(save) + '，一个月省 ' + money(perMonth);
+    else if (key === 'lose') summary = pre + '在家做一顿反而贵 ' + money(-save) + '，不如点外卖';
+    else summary = pre + '在家做和点外卖差不多：一顿都是 ' + money(out);
+
+    const facts = [];
+    facts.push('每周做 ' + K + ' 顿，食材花 ' + money(w.food) + '，其中 ' + money(w.wasted) + '（' + pct(wasteShare) + '）是整包买回来没吃完扔掉的。');
+    if (worst) {
+      const lu = worst.unit ? fmt(worst.leftover, 2) + ' ' + worst.unit : fmt(worst.leftover, 2);
+      facts.push('扔得最多的是「' + worst.name + '」：买 ' + worst.packs + ' 包、每周剩 ' + lu + '，扔掉 ' + money(worst.wasted) + '。');
+    } else facts.push('这份清单每样都刚好用完或放得住，没有扔掉的钱。');
+    facts.push('外卖一顿 ' + money(out) + (s > 1 ? '（每份 ' + money(P.takeout) + ' × ' + s + '）' : '') + '；在家一顿 ' + money(home) + (P.hourly > 0 && P.minutes > 0 ? '（含时间 ' + money(P.hourly * P.minutes / 60) + '）' : '') + '。');
+    if (P.minutes > 0) {
+      if (P.hourly > 0) facts.push('不算时间的话，在家一顿现金 ' + money(w.perMeal) + (cashGap > EPS ? '；时间每小时值 ' + money(hStar) + ' 以上就不如点外卖。' : '，单算现金已经比外卖贵。'));
+      else if (hStar != null) facts.push('每顿多花 ' + fmt(P.minutes, 0) + ' 分钟；这段时间每小时值 ' + money(hStar) + ' 以上，就不如点外卖。');
+      else facts.push('每顿还要多花 ' + fmt(P.minutes, 0) + ' 分钟，单算现金就已经不比外卖便宜。');
+    }
+    if (firstBeat && firstBeat.K !== K && key !== 'save') facts.push('同一份清单每周做到 ' + firstBeat.K + ' 顿，每顿降到 ' + money(firstBeat.perMeal) + '，才比外卖便宜。');
+    if (!firstBeat) facts.push('同一份清单每周做 1 到 ' + MAXK + ' 顿，没有一种比外卖便宜。');
+    if (best.K !== K && best.perMeal < home - 0.005) facts.push('同一份清单每周做 ' + best.K + ' 顿时每顿最便宜，' + money(best.perMeal) + '（整包刚好用得最满）。');
+
+    return { P: P, week: w, out: out, home: home, save: save, perWeek: perWeek, perMonth: perMonth, receipt: receipt,
+      curve: curve, best: best, firstBeat: firstBeat, hStar: hStar, tStar: tStar, cashGap: cashGap, worst: worst, wasteShare: wasteShare,
+      verdict: { key: key }, summary: summary, facts: facts };
+  }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  /* 建议：每条都是一份可以直接代回的输入补丁（apply），并写明代回后的结果 */
+  function suggestions(st, r) {
+    const out = [];
+    const P = r.P, K = P.meals;
+    const tryIt = function (patch) { const s2 = Object.assign(clone(st), patch); try { return calculate(s2); } catch (e) { return null; } };
+    /* 1. 扔得最多那样改成放得住（分装冷冻 / 买了就做成能放的） */
+    if (r.worst) {
+      const items = clone(st.items); items[r.worst.i].keeps = true;
+      const r2 = tryIt({ items: items });
+      if (r2 && r2.home < r.home - 0.005) out.push({ id: 'keep', apply: { items: items },
+        text: '「' + r.worst.name + '」剩下的不扔（分装冷冻或下周接着用）：每顿 ' + money(r.home) + ' → ' + money(r2.home) + (r2.verdict.key !== r.verdict.key ? '，结论变成「' + r2.summary + '」' : '') + '。' });
+    }
+    /* 2. 换个每周做几顿：最便宜的那个 K（若现在不划算，优先给最少几顿就划算） */
+    const target = (r.verdict.key !== 'save' && r.firstBeat) ? r.firstBeat : r.best;
+    if (target && target.K !== K) {
+      const r2 = tryIt({ meals: String(target.K) });
+      if (r2 && r2.home < r.home - 0.005) out.push({ id: 'meals', apply: { meals: String(target.K) },
+        text: '同一份清单每周做 ' + target.K + ' 顿（现在 ' + K + ' 顿）：每顿 ' + money(r.home) + ' → ' + money(r2.home) + '，' + (r2.verdict.key === 'save' ? '比外卖每顿省 ' + money(r2.save) : r2.summary) + '。' });
+    }
+    /* 3. 时间算钱时：每顿控制在多少分钟内才打平 */
+    if (P.hourly > 0 && P.minutes > 0 && r.verdict.key === 'lose' && r.cashGap > 0.005) {
+      const m = Math.floor(r.cashGap * 60 / P.hourly);
+      if (m >= 1 && m < P.minutes) {
+        const r2 = tryIt({ minutes: String(m) });
+        if (r2) out.push({ id: 'minutes', apply: { minutes: String(m) },
+          text: '每顿从买到洗压到 ' + m + ' 分钟以内（现在 ' + fmt(P.minutes, 0) + ' 分钟）：在家一顿 ' + money(r2.home) + '，' + r2.summary + '。' });
+      }
+    }
+    return out;
+  }
+
+  function csvCell(v) { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function toCSV(r, stamp) {
+    const P = r.P, w = r.week;
+    const L = [];
+    L.push(['拆一顿饭钱', stamp].map(csvCell).join(','));
+    L.push(['结论', r.summary].map(csvCell).join(','));
+    L.push(['每周在家做几顿', P.meals].join(','));
+    L.push(['每顿几个人吃', P.people].join(','));
+    L.push(['外卖一顿（元）', round(r.out, 2)].join(','));
+    L.push(['在家一顿（元）', round(r.home, 2)].join(','));
+    L.push(['每顿省（元，负数为更贵）', round(r.save, 2)].join(','));
+    L.push(['每月省（元，按 52÷12 周）', round(r.perMonth, 2)].join(','));
+    L.push('');
+    L.push('一顿的小票,元');
+    r.receipt.forEach(function (x) { L.push([csvCell(x[0]), round(x[1], 2)].join(',')); });
+    L.push('');
+    L.push('食材,单位,一包价,一包多少,每顿用,剩下的,买几包,花掉,吃进去,扔掉');
+    w.rows.forEach(function (x, i) {
+      const it = P.items[i];
+      L.push([csvCell(x.name), csvCell(x.unit), it.price, it.size, it.use, x.keeps ? '放得住' : '扔掉', x.packs, round(x.spent, 2), round(x.eaten, 2), round(x.wasted, 2)].join(','));
+    });
+    L.push('');
+    L.push('每周做几顿,在家一顿（元）,比外卖便宜');
+    r.curve.forEach(function (c) { L.push([c.K, round(c.perMeal, 2), c.beats ? '是' : '否'].join(',')); });
+    L.push('');
+    r.facts.forEach(function (f) { L.push(csvCell(f)); });
+    return L.join('\n') + '\n';
+  }
+  function toMD(r, stamp, sg) {
+    const P = r.P, w = r.week;
+    const L = ['# 拆一顿饭钱', '', '> ' + stamp + ' · 每周在家做 ' + P.meals + ' 顿 · ' + P.people + ' 个人吃', '', '**' + r.summary + '**', ''];
+    L.push('| 一顿的小票 | 金额 |', '|---|---:|');
+    r.receipt.forEach(function (x) { L.push('| ' + x[0] + ' | ' + money(x[1]) + ' |'); });
+    L.push('| **在家一顿** | **' + money(r.home) + '** |', '| 外卖一顿 | ' + money(r.out) + ' |', '');
+    L.push('| 食材 | 买几包 | 花掉 | 吃进去 | 扔掉 |', '|---|---:|---:|---:|---:|');
+    w.rows.forEach(function (x) { L.push('| ' + x.name.replace(/\|/g, '/') + (x.keeps ? '（放得住）' : '') + ' | ' + x.packs + ' | ' + money(x.spent) + ' | ' + money(x.eaten) + ' | ' + money(x.wasted) + ' |'); });
+    L.push('', '## 要点', '');
+    r.facts.forEach(function (f) { L.push('- ' + f); });
+    if (sg && sg.length) { L.push('', '## 可以试的改法', ''); sg.forEach(function (s) { L.push('- ' + s.text); }); }
+    L.push('', '整包取整按一周一趟算，放不住的剩下部分当周扔掉；调料、燃气水电、时间都是你填的估计。示例数据为虚构。', '');
+    return L.join('\n');
+  }
+
+  const api = { MAXK: MAXK, MAXITEMS: MAXITEMS, round: round, fmt: fmt, money: money, pct: pct, parse: parse, itemAt: itemAt, weekAt: weekAt, calculate: calculate, suggestions: suggestions, toCSV: toCSV, toMD: toMD };
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.AppCore = api;
+})(typeof window !== 'undefined' ? window : this);
+
+  </script>
+  <script>
+/* 拆一顿饭钱 · 界面层 */
+(function () {
+  'use strict';
+  const C = window.AppCore;
+  const KEY = 'split-a-meal:v1';
+  const ITEMS = [
+    { name: '青菜', price: '4.5', size: '500', use: '200', unit: '克', keeps: false },
+    { name: '猪肉', price: '22', size: '400', use: '150', unit: '克', keeps: false },
+    { name: '番茄', price: '9.9', size: '6', use: '1', unit: '个', keeps: false },
+    { name: '豆腐', price: '3.5', size: '1', use: '0.5', unit: '盒', keeps: false },
+    { name: '鸡蛋', price: '12', size: '10', use: '2', unit: '个', keeps: true },
+    { name: '大米', price: '32', size: '5000', use: '150', unit: '克', keeps: true }
+  ];
+  const DEFAULT = { people: '1', meals: '5', takeout: '26', pantry: '1.5', energy: '1', minutes: '40', hourly: '0', items: ITEMS };
+  const copy = (o) => JSON.parse(JSON.stringify(o));
+  const W = (o) => Object.assign(copy(DEFAULT), o);
+  const triple = ITEMS.map((x) => Object.assign({}, x, { use: String(+x.use * 3) }));
+  const PRESETS = [
+    ['默认：一个人，工作日晚饭 5 顿', DEFAULT],
+    ['只在周末做 2 顿', W({ meals: '2' })],
+    ['时间按每小时 30 元算', W({ hourly: '30' })],
+    ['一家三口，每天晚饭', W({ people: '3', meals: '7', minutes: '60', items: triple })]
+  ];
+  const F = ['people', 'meals', 'takeout', 'pantry', 'energy', 'minutes', 'hourly'];
+  const IF = ['name', 'price', 'size', 'use', 'unit'];
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let state = copy(DEFAULT);
+  let last = null;
+  const GREEN = '#3f6b4f', RUST = '#c0623a', GREY = '#cfd4c5';
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 隐私模式忽略 */ } }
+  function load() {
+    try {
+      const o = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+      const s = copy(DEFAULT);
+      F.forEach((k) => { if (o[k] != null) s[k] = String(o[k]).slice(0, 40); });
+      if (Array.isArray(o.items)) {
+        s.items = o.items.slice(0, C.MAXITEMS).filter((x) => x && typeof x === 'object').map((x) => {
+          const it = {}; IF.forEach((k) => { it[k] = String(x[k] == null ? '' : x[k]).slice(0, 40); }); it.keeps = x.keeps === true; return it;
+        });
+      }
+      return s;
+    } catch (e) { return null; }
+  }
+
+  function buildItems() {
+    const box = $('items'); box.innerHTML = '';
+    state.items.forEach((it, i) => {
+      const d = document.createElement('div'); d.className = 'it';
+      const f = (k, lab, w) => '<div><label for="it-' + i + '-' + k + '">' + lab + '</label><input id="it-' + i + '-' + k + '" data-i="' + i + '" data-k="' + k + '"' + (w ? ' inputmode="decimal"' : '') + ' maxlength="20"></div>';
+      d.innerHTML = f('name', '食材') + f('price', '一包多少钱', 1) + f('size', '一包有多少', 1) + f('use', '每顿用多少', 1) + f('unit', '单位') +
+        '<label class="ck"><input type="checkbox" id="it-' + i + '-keeps" data-i="' + i + '">放得住</label>' +
+        '<button class="x" data-del="' + i + '" title="删掉这一样">删</button>';
+      box.appendChild(d);
+      IF.forEach((k) => { const e = $('it-' + i + '-' + k); e.value = it[k]; e.addEventListener('input', () => { state.items[i][k] = e.value; run(); }); });
+      const ck = $('it-' + i + '-keeps'); ck.checked = !!it.keeps; ck.addEventListener('change', () => { state.items[i].keeps = ck.checked; run(); });
+      d.querySelector('[data-del]').addEventListener('click', () => { state.items.splice(i, 1); buildItems(); run(); });
+    });
+    $('addItem').disabled = state.items.length >= C.MAXITEMS;
+  }
+  function fill() { F.forEach((k) => { $(k).value = state[k]; }); buildItems(); }
+
+  /* 锯齿图：横轴每周做几顿（1–21），纵轴一顿多少钱；外卖一顿画成横线 */
+  function curve(r) {
+    const svg = $('curve');
+    const narrow = (svg.clientWidth || 900) < 520;
+    const Wd = 900, H = narrow ? 360 : 260, L = narrow ? 92 : 70, R = 20, T = 18, B = narrow ? 56 : 40;
+    svg.setAttribute('viewBox', '0 0 ' + Wd + ' ' + H);
+    const fs = narrow ? 26 : 13;
+    const vals = r.curve.map((c) => c.perMeal).concat([r.out]);
+    let hi = Math.max.apply(null, vals) * 1.08, lo = 0;
+    if (!(hi > 0)) hi = 1;
+    const x = (k) => L + (Wd - L - R) * (k - 0.5) / C.MAXK, bw = (Wd - L - R) / C.MAXK * 0.7;
+    const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    const P = [];
+    for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4; P.push('<line x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#eceee6"/><text x="' + (L - 6) + '" y="' + (y(v) + fs * 0.35) + '" text-anchor="end" font-size="' + fs + '" fill="#737a6a">' + C.fmt(v, 0) + '</text>'); }
+    r.curve.forEach((c) => {
+      const now = c.K === r.P.meals;
+      P.push('<rect x="' + (x(c.K) - bw / 2) + '" y="' + y(c.perMeal) + '" width="' + bw + '" height="' + Math.max(0, y(lo) - y(c.perMeal)) + '" fill="' + (c.beats ? GREEN : RUST) + '" opacity="' + (now ? 1 : 0.45) + '"' + (now ? ' stroke="#23261f" stroke-width="2"' : '') + '><title>' + c.K + ' 顿：' + C.money(c.perMeal) + '</title></rect>');
+      if (!narrow || c.K % 2 === 1 || now) P.push('<text x="' + x(c.K) + '" y="' + (H - B + fs + 4) + '" text-anchor="middle" font-size="' + fs + '" fill="' + (now ? '#23261f' : '#737a6a') + '"' + (now ? ' font-weight="700"' : '') + '>' + c.K + '</text>');
+    });
+    P.push('<line x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y(r.out) + '" y2="' + y(r.out) + '" stroke="#23261f" stroke-width="2" stroke-dasharray="7 5"/>');
+    const lab = '外卖一顿 ' + C.money(r.out);
+    const ly = y(r.out) - 6 < T + fs ? y(r.out) + fs + 4 : y(r.out) - 6;
+    P.push('<rect x="' + (Wd - R - lab.length * fs * 0.62 - 8) + '" y="' + (ly - fs) + '" width="' + (lab.length * fs * 0.62 + 8) + '" height="' + (fs + 4) + '" fill="#fff" opacity="0.85"/>');
+    P.push('<text x="' + (Wd - R - 4) + '" y="' + ly + '" text-anchor="end" font-size="' + fs + '" fill="#23261f">' + esc(lab) + '</text>');
+    P.push('<text x="' + ((L + Wd - R) / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="' + fs + '" fill="#737a6a">每周做几顿（黑框 = 现在）</text>');
+    svg.innerHTML = P.join('');
+    $('curveKey').innerHTML = '<span><i style="background:' + GREEN + '"></i>比外卖便宜</span><span><i style="background:' + RUST + '"></i>不比外卖便宜</span><span>虚线 = 外卖一顿</span>';
+    $('curveTitle').textContent = '同一份清单，每周做几顿，一顿多少钱（最便宜是 ' + r.best.K + ' 顿，' + C.money(r.best.perMeal) + '）';
+  }
+
+  function render(r, sg) {
+    const P = r.P, w = r.week;
+    const s = $('summary'); s.textContent = r.summary; s.className = r.verdict.key;
+    const nums = [['外卖一顿', C.money(r.out)], ['在家一顿', C.money(r.home)], [r.save >= 0 ? '每顿省' : '每顿多花', C.money(Math.abs(r.save))], ['每周扔掉', C.money(w.wasted)]];
+    if (P.minutes > 0 && P.hourly === 0 && r.hStar != null) nums.push(['时间值多少就不划算', C.money(r.hStar) + '/小时']);
+    $('nums').innerHTML = nums.map((x) => '<div><small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');
+    $('facts').innerHTML = r.facts.map((f) => '<li>' + esc(f) + '</li>').join('');
+    /* 小票 */
+    const t = [];
+    t.push('<h3>在家一顿 · 小票</h3>');
+    t.push('<div class="ln vs"><span>每周 ' + P.meals + ' 顿 · ' + P.people + ' 人</span><span></span></div>');
+    r.receipt.forEach((x, i) => t.push('<div class="ln' + (i === 1 ? ' waste' : '') + '"><span>' + esc(x[0]) + '</span><span>' + C.money(x[1]) + '</span></div>'));
+    t.push('<div class="ln tot"><span>合计</span><span>' + C.money(r.home) + '</span></div>');
+    t.push('<div class="ln vs"><span>外卖一顿' + (P.people > 1 ? '（' + C.money(P.takeout) + ' × ' + P.people + '）' : '') + '</span><span>' + C.money(r.out) + '</span></div>');
+    t.push('<div class="ln tot"><span>' + (r.save >= 0 ? '省下' : '多花') + '</span><span>' + C.money(Math.abs(r.save)) + '</span></div>');
+    t.push('<div class="foot">示例数据为虚构 · 价格用量都是估计</div>');
+    $('ticket').innerHTML = t.join('');
+    /* 食材表 */
+    $('tbl').innerHTML = '<tr><th>食材</th><th>一周要用</th><th>买几包</th><th>花掉</th><th>吃进去</th><th>扔掉</th></tr>' +
+      w.rows.map((x) => '<tr><td>' + esc(x.name) + (x.keeps ? '（放得住）' : '') + '</td><td>' + C.fmt(x.need, 2) + (x.unit ? ' ' + esc(x.unit) : '') + '</td><td>' + C.fmt(x.packs, 0) + '</td><td>' + C.money(x.spent) + '</td><td>' + C.money(x.eaten) + '</td><td class="' + (x.wasted > 0.004 ? 'w' : '') + '">' + C.money(x.wasted) + '</td></tr>').join('') +
+      '<tr><td><b>合计</b></td><td></td><td></td><td><b>' + C.money(w.food) + '</b></td><td><b>' + C.money(w.eaten) + '</b></td><td class="w"><b>' + C.money(w.wasted) + '</b></td></tr>';
+    curve(r);
+    $('sugCard').style.display = sg.length ? '' : 'none';
+    $('sugs').innerHTML = '';
+    sg.forEach((x) => {
+      const d = document.createElement('div'); d.className = 'sug';
+      d.innerHTML = '<span>' + esc(x.text) + '</span>';
+      const bt = document.createElement('button'); bt.textContent = '代回去算'; bt.dataset.sug = x.id;
+      bt.addEventListener('click', () => { Object.assign(state, copy(x.apply)); fill(); run(); });
+      d.appendChild(bt); $('sugs').appendChild(d);
+    });
+  }
+
+  function run() {
+    [].forEach.call(document.querySelectorAll('.bad'), (e) => e.classList.remove('bad'));
+    try {
+      const r = C.calculate(state);
+      const sg = C.suggestions(state, r);
+      $('error').style.display = 'none'; $('out').style.display = '';
+      render(r, sg);
+      last = { r, sg };
+    } catch (e) {
+      last = null;
+      if (e.field) { const el = $(e.field); if (el) el.classList.add('bad'); }
+      $('error').textContent = '算不了：' + e.message; $('error').style.display = 'block';
+      $('out').style.display = 'none';
+    }
+    save();
+  }
+
+  /* ── 导出 ── */
+  function stamp() { const d = new Date(), z = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+  function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+  function wrap(g, t, w) {
+    const NOHEAD = '，。、；：！？）」』%';
+    const out = []; let line = [];
+    const toks = String(t).match(/[+-]?¥?[0-9][0-9,.:%]*|[A-Za-z]+|[\s\S]/g) || [];
+    const width = (a) => g.measureText(a.join('')).width;
+    for (const tk of toks) {
+      if (line.length && width(line.concat([tk])) > w) {
+        let carry = [tk];
+        while (line.length > 1 && (NOHEAD.indexOf(carry[0][0]) >= 0 || '（「『'.indexOf(line[line.length - 1]) >= 0)) carry.unshift(line.pop());
+        out.push(line.join(''));
+        line = carry; if (/^\s+$/.test(line[0])) line.shift();
+      } else line.push(tk);
+    }
+    if (line.length) out.push(line.join('')); return out;
+  }
+  function fitText(g, t, w, size, min, bold, FF) {
+    let fs = size; g.font = (bold ? 'bold ' : '') + fs + 'px ' + FF;
+    while (fs > min && g.measureText(t).width > w) { fs -= 1; g.font = (bold ? 'bold ' : '') + fs + 'px ' + FF; }
+    if (g.measureText(t).width <= w) return t;
+    let s = t; while (s.length > 1 && g.measureText(s + '…').width > w) s = s.slice(0, -1);
+    return s + '…';
+  }
+  function drawPNG(Lx) {
+    const r = Lx.r, P = r.P, w = r.week;
+    const Wd = 1080, H = 1350, X = 90, TW = 900;
+    const cv = document.createElement('canvas'); cv.width = Wd; cv.height = H;
+    const g = cv.getContext('2d'), FF = '"PingFang SC","Microsoft YaHei",sans-serif';
+    g.fillStyle = '#eef0ea'; g.fillRect(0, 0, Wd, H);
+    g.fillStyle = '#fff'; g.fillRect(50, 50, Wd - 100, H - 100);
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = '#737a6a'; g.font = '26px ' + FF; g.fillText('拆一顿饭钱 · 每周 ' + P.meals + ' 顿 · ' + P.people + ' 人', X, 118);
+    g.fillStyle = r.verdict.key === 'save' ? '#2f6a45' : r.verdict.key === 'lose' ? '#a2421f' : '#5d6356';
+    g.font = 'bold 44px ' + FF;
+    let y = 190; wrap(g, r.summary, TW).slice(0, 3).forEach((l) => { g.fillText(l, X, y); y += 58; });
+    y += 6;
+    const big = [['外卖一顿', C.money(r.out)], ['在家一顿', C.money(r.home)], ['每周扔掉', C.money(w.wasted)]];
+    const cw = TW / 3;
+    big.forEach((b, i) => {
+      g.fillStyle = '#737a6a'; g.font = '24px ' + FF; g.fillText(b[0], X + i * cw, y);
+      g.fillStyle = '#23261f'; g.fillText(fitText(g, b[1], cw - 16, 46, 22, true, FF), X + i * cw, y + 56);
+    });
+    y += 100;
+    /* 小票条：一顿的钱拆成几段 */
+    const segs = r.receipt.filter((x) => x[1] > 0);
+    const tot = segs.reduce((a, x) => a + x[1], 0) || 1;
+    const cols = ['#3f6b4f', '#c0623a', '#a7b38f', '#d7c58f', '#8a93a8'];
+    let xx = X; const scale = TW * Math.min(1, r.home / Math.max(r.home, r.out));
+    segs.forEach((s, i) => { const ww = scale * s[1] / tot; g.fillStyle = cols[r.receipt.indexOf(s) % cols.length]; g.fillRect(xx, y, ww, 40); xx += ww; });
+    const xo = X + TW * Math.min(1, r.out / Math.max(r.home, r.out));
+    g.strokeStyle = '#23261f'; g.lineWidth = 3; g.setLineDash([8, 5]); g.beginPath(); g.moveTo(xo, y - 10); g.lineTo(xo, y + 50); g.stroke(); g.setLineDash([]);
+    y += 76;
+    /* 图例：每一段一个色块，放不下就换行；虚线单独一条 */
+    g.font = '22px ' + FF;
+    let lx = X;
+    const legs = segs.map((sg) => [cols[r.receipt.indexOf(sg) % cols.length], sg[0].replace('食材：', '') + ' ' + C.money(sg[1])]).concat([[null, '虚线 = 外卖一顿 ' + C.money(r.out)]]);
+    legs.forEach((lg) => {
+      const wd = g.measureText(lg[1]).width + 34;
+      if (lx > X && lx + wd > X + TW) { lx = X; y += 32; }
+      if (lg[0]) { g.fillStyle = lg[0]; g.fillRect(lx, y - 17, 18, 18); }
+      else { g.strokeStyle = '#23261f'; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(lx + 9, y - 20); g.lineTo(lx + 9, y + 4); g.stroke(); g.setLineDash([]); }
+      g.fillStyle = '#454a3f'; g.fillText(lg[1], lx + 26, y); lx += wd + 12;
+    });
+    y += 44;
+    /* 事实 */
+    g.font = '23px ' + FF; g.fillStyle = '#23261f';
+    const bottom = H - 150;
+    for (const f of r.facts) {
+      const ls = wrap(g, '· ' + f, TW);
+      if (y + ls.length * 34 > bottom) break;
+      ls.forEach((l) => { g.fillText(l, X, y); y += 34; }); y += 6;
+    }
+    /* 食材表 */
+    const rows = [['食材', '买几包', '花掉', '扔掉']].concat(w.rows.map((x) => [x.name + (x.keeps ? '（放得住）' : ''), C.fmt(x.packs, 0), C.money(x.spent), C.money(x.wasted)]));
+    const cx = [0, 420, 560, 740], rh = 34;
+    y += 10;
+    for (let i = 0; i < rows.length; i++) {
+      if (y + rh > bottom + 30) break;
+      rows[i].forEach((cell, j) => {
+        const wcol = (j + 1 < cx.length ? cx[j + 1] : TW) - cx[j] - 12;
+        g.fillStyle = i === 0 ? '#737a6a' : (j === 3 && w.rows[i - 1].wasted > 0.004) ? '#a2421f' : '#23261f';
+        g.fillText(fitText(g, cell, wcol, i === 0 ? 20 : 22, 14, false, FF), X + cx[j], y);
+      });
+      y += rh;
+      if (i === 0) { g.strokeStyle = '#d6dacd'; g.lineWidth = 1; g.beginPath(); g.moveTo(X, y - 24); g.lineTo(X + TW, y - 24); g.stroke(); }
+    }
+    /* 剩下的位置画「每周做几顿」锯齿柱 */
+    const ch0 = y + 20, ch1 = H - 140;
+    if (ch1 - ch0 >= 150) {
+      g.fillStyle = '#737a6a'; g.font = '21px ' + FF;
+      g.fillText(fitText(g, '同一份清单每周做 1–' + C.MAXK + ' 顿，一顿多少钱（深色 = 现在 ' + P.meals + ' 顿，最便宜 ' + r.best.K + ' 顿）', TW, 21, 15, false, FF), X, ch0 + 4);
+      const top = ch0 + 24, base = ch1 - 30;
+      const mx = Math.max.apply(null, r.curve.map((c) => c.perMeal).concat([r.out])) * 1.05 || 1;
+      const bw = TW / C.MAXK;
+      r.curve.forEach((c) => {
+        const hh = (base - top) * c.perMeal / mx;
+        g.fillStyle = c.beats ? '#3f6b4f' : '#c0623a'; g.globalAlpha = c.K === P.meals ? 1 : 0.4;
+        g.fillRect(X + (c.K - 1) * bw + bw * 0.15, base - hh, bw * 0.7, hh); g.globalAlpha = 1;
+        g.fillStyle = c.K === P.meals ? '#23261f' : '#737a6a'; g.font = (c.K === P.meals ? 'bold ' : '') + '17px ' + FF;
+        g.textAlign = 'center'; g.fillText(String(c.K), X + (c.K - 0.5) * bw, base + 22); g.textAlign = 'left';
+      });
+      const yo = base - (base - top) * r.out / mx;
+      g.strokeStyle = '#23261f'; g.lineWidth = 2; g.setLineDash([7, 5]); g.beginPath(); g.moveTo(X, yo); g.lineTo(X + TW, yo); g.stroke(); g.setLineDash([]);
+    }
+    g.fillStyle = '#737a6a'; g.font = '21px ' + FF;
+    wrap(g, '一周买一趟、整包取整，放不住的剩下部分当周扔掉。价格、用量、时间都是估计，示例数据为虚构。', TW).forEach((l, i) => g.fillText(l, X, H - 110 + i * 30));
+    return cv;
+  }
+  function backup() {
+    const r = last.r;
+    return { app: '拆一顿饭钱', version: 1, savedAt: stamp(), input: copy(state),
+      result: { summary: r.summary, verdict: r.verdict.key, takeoutMeal: C.round(r.out, 2), homeMeal: C.round(r.home, 2), savePerMeal: C.round(r.save, 2), savePerMonth: C.round(r.perMonth, 2),
+        wastedPerWeek: C.round(r.week.wasted, 2), foodPerWeek: C.round(r.week.food, 2), bestMeals: r.best.K, breakEvenHourly: r.hStar == null ? null : C.round(r.hStar, 2),
+        items: r.week.rows.map((x) => ({ name: x.name, packs: x.packs, spent: C.round(x.spent, 2), wasted: C.round(x.wasted, 2) })), facts: r.facts } };
+  }
+
+  function init() {
+    F.forEach((k) => $(k).addEventListener('input', () => { state[k] = $(k).value; run(); }));
+    $('addItem').addEventListener('click', () => { if (state.items.length < C.MAXITEMS) { state.items.push({ name: '', price: '', size: '', use: '', unit: '', keeps: false }); buildItems(); run(); } });
+    const box = $('presets');
+    PRESETS.forEach((p) => {
+      const b = document.createElement('button'); b.className = 'ghost'; b.textContent = p[0];
+      b.addEventListener('click', () => { state = copy(p[1]); fill(); run(); });
+      box.appendChild(b);
+    });
+    $('reset').addEventListener('click', () => { state = copy(DEFAULT); fill(); run(); });
+    $('dlCSV').addEventListener('click', () => { if (last) download('拆一顿饭钱.csv', new Blob(['\ufeff' + C.toCSV(last.r, stamp())], { type: 'text/csv;charset=utf-8' })); });
+    $('dlMD').addEventListener('click', () => { if (last) download('拆一顿饭钱.md', new Blob([C.toMD(last.r, stamp(), last.sg)], { type: 'text/markdown;charset=utf-8' })); });
+    $('dlJSON').addEventListener('click', () => { if (last) download('拆一顿饭钱-备份.json', new Blob([JSON.stringify(backup(), null, 2)], { type: 'application/json' })); });
+    $('dlPNG').addEventListener('click', () => { if (last) drawPNG(last).toBlob((b) => download('拆一顿饭钱-1080x1350.png', b), 'image/png'); });
+    let rt = null;
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (last) curve(last.r); }, 150); });
+    state = load() || copy(DEFAULT);
+    fill(); run();
+    window.__ex = { last: () => last, state: () => state, presets: PRESETS, png: () => last && drawPNG(last).toDataURL('image/png') };
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+  </script>
+</body>
+</html>
